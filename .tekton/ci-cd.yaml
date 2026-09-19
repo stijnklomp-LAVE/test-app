@@ -1,0 +1,117 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  name: test-app-ci-cd
+  annotations:
+    pipelinesascode.tekton.dev/on-event: "[push]"
+    pipelinesascode.tekton.dev/on-target-branch: "[main]"
+spec:
+  taskRunTemplate:
+    podTemplate:
+      securityContext:
+        fsGroup: 65532
+  params:
+    - name: repo-url
+      value: "{{ repo_url }}"
+    - name: revision
+      value: "{{ revision }}"
+  workspaces:
+    - name: source
+      volumeClaimTemplate:
+        spec:
+          accessModes: [ "ReadWriteOnce" ]
+          resources:
+            requests:
+              storage: 1Gi
+          storageClassName: longhorn
+    - name: basic-auth
+      secret:
+        secretName: "{{ git_auth_secret }}"
+    - name: docker-credentials
+      secret:
+        secretName: dockerhub-docker-config
+    - name: gitops-auth
+      secret:
+        secretName: gitops-pat
+  pipelineSpec:
+    params:
+      - name: repo-url
+        type: string
+      - name: revision
+        type: string
+    workspaces:
+      - name: source
+      - name: basic-auth
+      - name: docker-credentials
+      - name: gitops-auth
+    tasks:
+      - name: clone
+        workspaces:
+          - name: output
+            workspace: source
+          - name: basic-auth
+            workspace: basic-auth
+        taskRef:
+          resolver: cluster
+          params:
+            - name: kind
+              value: task
+            - name: name
+              value: git-clone-v1
+            - name: namespace
+              value: tekton-pipelines
+        params:
+          - name: url
+            value: $(params.repo-url)
+          - name: revision
+            value: $(params.revision)
+
+      - name: build-and-push
+        runAfter:
+          - clone
+        taskRef:
+          resolver: cluster
+          params:
+            - name: kind
+              value: task
+            - name: name
+              value: kaniko-v1
+            - name: namespace
+              value: tekton-pipelines
+        workspaces:
+          - name: source
+            workspace: source
+          - name: dockerconfig
+            workspace: docker-credentials
+        params:
+          - name: IMAGE
+            value: docker.io/stijnklomp/test-app:$(tasks.clone.results.commit)
+          - name: DOCKERFILE
+            value: ./Dockerfile
+          - name: CONTEXT
+            value: ./
+
+      - name: gitops-tag-bump
+        runAfter:
+          - build-and-push
+        taskRef:
+          resolver: cluster
+          params:
+            - name: kind
+              value: task
+            - name: name
+              value: gitops-tag-bump-v1
+            - name: namespace
+              value: tekton-pipelines
+        workspaces:
+          - name: gitops-auth
+            workspace: gitops-auth
+        params:
+          - name: REPO_URL
+            value: https://github.com/stijnklomp-LAVE/test-app
+          - name: REVISION
+            value: main
+          - name: APP_FILE
+            value: applications/test-app/baremetal.yaml
+          - name: IMAGE_TAG
+            value: $(tasks.clone.results.commit)

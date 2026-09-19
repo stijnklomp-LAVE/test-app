@@ -1,0 +1,5 @@
+apiVersion: v2
+name: hello-app
+description: Demo app for the Tekton -> Docker Hub -> ArgoCD e2e flow
+type: application
+version: 0.1.0

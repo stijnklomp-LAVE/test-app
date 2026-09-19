@@ -1,0 +1,10 @@
+replicaCount: 1
+
+image:
+  # Public Docker Hub image (no imagePullSecrets needed)
+  repository: docker.io/<DOCKERHUB_USERNAME>/hello-app
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  port: 80
