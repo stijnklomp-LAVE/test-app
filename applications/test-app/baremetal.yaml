@@ -1,0 +1,31 @@
+# test-app on home-cluster-1 (bare-metal, in-cluster).
+# image.tag is maintained by the Tekton gitops-tag-bump-v1 task
+# (CI -> Docker Hub -> this file -> ArgoCD auto-sync). E2E phase: the app
+# repo doubles as the GitOps repo (synced by the test-app-apps bootstrap
+# Application in namespace argo).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: test-app
+  namespace: argo
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/stijnklomp-LAVE/test-app
+    targetRevision: main
+    path: deploy/hello-app
+    helm:
+      parameters:
+        - name: image.repository
+          value: docker.io/stijnklomp/test-app
+        - name: image.tag
+          value: latest
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: home-service-a # owned by home-sso-auth-rbac cluster-rbac (no CreateNamespace)
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
