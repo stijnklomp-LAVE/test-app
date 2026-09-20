@@ -1,3 +1,0 @@
-# PaC OWNERS — who may run/approve Pipelines-as-Code runs on this repo
-# (required for PaC auto-configure; governs /ok-to-test, /test, /retest).
-- stijnklomp
