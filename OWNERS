@@ -1,0 +1,5 @@
+# PaC OWNERS — who may run/approve Pipelines-as-Code runs on this repo.
+# Must be at the REPO ROOT (PaC reads "OWNERS" from the default branch, not
+# .tekton/OWNERS). Used as the whitelist fallback for /test, /retest and
+# /ok-to-test after the built-in ACL (repo owner/collaborator/org member).
+- stijnklomp

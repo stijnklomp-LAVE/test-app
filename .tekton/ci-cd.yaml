@@ -5,6 +5,9 @@ metadata:
   annotations:
     pipelinesascode.tekton.dev/on-event: "[push, pull_request]"
     pipelinesascode.tekton.dev/on-target-branch: "[main]"
+    # Runs in the Repository CR's namespace (default: tekton-pipelines). To move
+    # this run later, add (and add the ns to the TektonConfig allow-list):
+    # pipelinesascode.tekton.dev/target-namespace: "<namespace>"
 spec:
   taskRunTemplate:
     podTemplate:
