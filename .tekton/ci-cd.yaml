@@ -3,7 +3,7 @@ kind: PipelineRun
 metadata:
   name: test-app-ci-cd
   annotations:
-    pipelinesascode.tekton.dev/on-event: "[push]"
+    pipelinesascode.tekton.dev/on-event: "[push, pull_request]"
     pipelinesascode.tekton.dev/on-target-branch: "[main]"
 spec:
   taskRunTemplate:
@@ -30,9 +30,6 @@ spec:
     - name: docker-credentials
       secret:
         secretName: dockerhub-docker-config
-    - name: gitops-auth
-      secret:
-        secretName: gitops-pat
   pipelineSpec:
     params:
       - name: repo-url
@@ -43,7 +40,6 @@ spec:
       - name: source
       - name: basic-auth
       - name: docker-credentials
-      - name: gitops-auth
     tasks:
       - name: clone
         workspaces:
@@ -90,28 +86,3 @@ spec:
             value: ./Dockerfile
           - name: CONTEXT
             value: ./
-
-      - name: gitops-tag-bump
-        runAfter:
-          - build-and-push
-        taskRef:
-          resolver: cluster
-          params:
-            - name: kind
-              value: task
-            - name: name
-              value: gitops-tag-bump-v1
-            - name: namespace
-              value: tekton-pipelines
-        workspaces:
-          - name: gitops-auth
-            workspace: gitops-auth
-        params:
-          - name: REPO_URL
-            value: https://github.com/stijnklomp-LAVE/test-app
-          - name: REVISION
-            value: main
-          - name: APP_FILE
-            value: applications/test-app/baremetal.yaml
-          - name: IMAGE_TAG
-            value: $(tasks.clone.results.commit)
